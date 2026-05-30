@@ -179,6 +179,36 @@
     text-shadow: 0 1px 4px rgba(0,0,0,0.3);
   }
 
+  /* 연출 오버레이 공통 */
+  .cutscene-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .cutscene-overlay.show { display: flex; }
+  .cutscene-text {
+    font-size: 26px;
+    font-weight: bold;
+    color: #cc0000;
+    text-align: center;
+    line-height: 1.8;
+    letter-spacing: 1px;
+    opacity: 0;
+    animation: ultAppear 0.7s ease-out 0.4s forwards;
+    text-shadow: 0 0 16px #ff0000;
+    white-space: pre-line;
+  }
+  @keyframes ultAppear {
+    0% { opacity: 0; transform: scale(0.7); }
+    60% { opacity: 1; transform: scale(1.06); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
   /* 로그 */
   #log {
     width: 100%;
@@ -194,6 +224,16 @@
 <body>
 
 <h1>⚔️ BALL FIGHT</h1>
+
+<!-- 각성 전 연출 -->
+<div id="awaken-cutscene" class="cutscene-overlay">
+  <div class="cutscene-text">얘들아 평내호평역이 어디야?</div>
+</div>
+
+<!-- 서온음 필살기 연출 -->
+<div id="ult-overlay" class="cutscene-overlay">
+  <div class="cutscene-text">다시는...\n아이언을 무시하지마라...</div>
+</div>
 
 <div id="select-screen">
   <div class="select-labels">
@@ -247,15 +287,15 @@ const DEFS = [
     id:'awaken_nodojin', name:'각성나도진', label:'각성\n도진',
     color:'#CC2200', maxHp:250, r:26, meleeDmg:10,
     skills:[
-      {name:'얘들아 나 탁구채 안가져왔다', label:'탁구채', dmg:50, cd:3000, last:-99999, type:'paddle', color:'#FF6B35', spd:3.2},
-      {name:'미국수도 LA아닌가?', label:'LA', dmg:80, cd:10000, last:-99999, type:'LA', color:'#CC2200', spd:2.5},
+      {name:'탁구채!!', label:'탁구채', dmg:50, cd:3000, last:-99999, type:'paddle', color:'#FF6B35', spd:3.2},
+      {name:'LA아닌감?', label:'LA', dmg:80, cd:10000, last:-99999, type:'LA', color:'#CC2200', spd:2.5},
     ]
   },
   {
     id:'seoonem', name:'서온음', label:'온음',
     color:'#378ADD', maxHp:250, r:23, meleeDmg:15,
     skills:[
-      {name:'나 아이언 아니라니까!', label:'철광석', dmg:100, cd:7000, last:-99999, type:'rock', color:'#5F5E5A', spd:2.2},
+      {name:'아이언 아니야!!', label:'철광석', dmg:100, cd:7000, last:-99999, type:'rock', color:'#5F5E5A', spd:2.2},
     ]
   }
 ];
@@ -381,7 +421,8 @@ function makeBall(def,x,y,border){
     vx: (x<AW/2?1:-1)*(2.5+Math.random()),
     vy: (Math.random()-0.5)*3,
     hp: def.maxHp, maxHp: def.maxHp,
-    alive: true, border, awakened: false, mcd:0, angle:0
+    alive: true, border, awakened: false, mcd:0, angle:0,
+    ultUsed: false
   };
 }
 
@@ -480,12 +521,26 @@ function tick(dt){
     if(!p.alive) return;
     p.x+=p.vx; p.y+=p.vy; p.angle+=0.1;
     if(p.x<-80||p.x>AW+80||p.y<-80||p.y>AH+80){ p.alive=false; return; }
-    if(!p.target.alive){ p.alive=false; return; }
-    const dx=p.target.x-p.x, dy=p.target.y-p.y;
-    if(Math.sqrt(dx*dx+dy*dy)<p.target.def.r+14){
-      dealDmg(p.target, p.dmg);
-      spawnRing(p.target.x, p.target.y, p.color);
-      p.alive=false;
+
+    if(p.isMeteor){
+      // 운석: 모든 살아있는 공에 닿으면 데미지
+      balls.forEach(b=>{
+        if(!b.alive||!p.alive) return;
+        const dx=b.x-p.x, dy=b.y-p.y;
+        if(Math.sqrt(dx*dx+dy*dy)<b.def.r+14){
+          dealDmg(b, p.dmg);
+          spawnRing(b.x, b.y, p.color);
+          p.alive=false;
+        }
+      });
+    } else {
+      if(!p.target.alive){ p.alive=false; return; }
+      const dx=p.target.x-p.x, dy=p.target.y-p.y;
+      if(Math.sqrt(dx*dx+dy*dy)<p.target.def.r+14){
+        dealDmg(p.target, p.dmg);
+        spawnRing(p.target.x, p.target.y, p.color);
+        p.alive=false;
+      }
     }
   });
 }
@@ -507,6 +562,14 @@ function dealDmg(target,dmg){
   target.hp=Math.max(0,target.hp-dmg);
   spawnDmg(target.x,target.y,dmg);
   updateHUD();
+
+  // 서온음 필살기: HP 30 이하일 때 한 번만
+  if(target.def.id==='seoonem' && target.hp<=30 && !target.ultUsed && target.alive){
+    target.ultUsed=true;
+    triggerUlt(target);
+    return;
+  }
+
   if(target.hp<=0){
     if(target.def.id==='nodojin'&&!target.awakened){ awaken(target); }
     else { target.alive=false; endBattle(target===p1?p2:p1); }
@@ -514,18 +577,34 @@ function dealDmg(target,dmg){
 }
 
 function awaken(ball){
-  ball.awakened=true;
-  const aw=cloneDef(DEFS.find(d=>d.id==='awaken_nodojin'));
-  ball.def=aw; ball.hp=aw.maxHp; ball.maxHp=aw.maxHp;
-  const arenaEl=document.getElementById('arena');
-  const fl=document.createElement('div'); fl.className='awaken-flash'; arenaEl.appendChild(fl);
-  const lb=document.createElement('div'); lb.className='awaken-label'; lb.textContent='💥 각성!!'; arenaEl.appendChild(lb);
-  setTimeout(()=>{fl.remove();lb.remove();},1300);
-  // 라벨 업데이트
-  const idx=balls.indexOf(ball);
-  if(labelEls[idx]) labelEls[idx].textContent=aw.name;
-  addLog('💥 나도진 각성!! HP 250 회복!');
-  updateHUD(); updateDots();
+  // 게임 일시정지 후 연출
+  running=false;
+  if(raf) cancelAnimationFrame(raf);
+
+  const cs=document.getElementById('awaken-cutscene');
+  cs.classList.add('show');
+
+  setTimeout(()=>{
+    cs.classList.remove('show');
+
+    // 실제 각성 처리
+    ball.awakened=true;
+    const aw=cloneDef(DEFS.find(d=>d.id==='awaken_nodojin'));
+    ball.def=aw; ball.hp=aw.maxHp; ball.maxHp=aw.maxHp;
+    const arenaEl=document.getElementById('arena');
+    const fl=document.createElement('div'); fl.className='awaken-flash'; arenaEl.appendChild(fl);
+    const lb=document.createElement('div'); lb.className='awaken-label'; lb.textContent='💥 각성!!'; arenaEl.appendChild(lb);
+    setTimeout(()=>{fl.remove();lb.remove();},1300);
+    const idx=balls.indexOf(ball);
+    if(labelEls[idx]) labelEls[idx].textContent=aw.name;
+    addLog('💥 나도진 각성!! HP 250 회복!');
+    updateHUD(); updateDots();
+
+    // 게임 재개
+    running=true;
+    prevT=performance.now();
+    raf=requestAnimationFrame(loop);
+  }, 2500);
 }
 
 function render(){
@@ -590,6 +669,48 @@ function updateDots(){
       c.appendChild(dot);
     });
   });
+}
+
+function triggerUlt(ball){
+  running=false;
+  if(raf) cancelAnimationFrame(raf);
+
+  const ov=document.getElementById('ult-overlay');
+  ov.classList.add('show');
+
+  setTimeout(()=>{
+    ov.classList.remove('show');
+    running=true;
+    prevT=performance.now();
+    raf=requestAnimationFrame(loop);
+    addLog('💎 서온음 필살기!! 하늘에서 철광석이!!');
+    meteorRain(ball);
+  }, 2500);
+}
+
+function meteorRain(owner){
+  const enemy=balls.find(o=>o!==owner&&o.alive);
+  if(!enemy) return;
+  const endTime=performance.now()+3000;
+
+  function spawnMeteor(){
+    if(performance.now()>endTime||!running) return;
+    const rx=20+Math.random()*(AW-40);
+    // 운석은 target 추적 없이 그냥 아래로 떨어짐
+    // tick에서 target 있어야 하니 enemy를 넣되 isMeteor 플래그로 구분
+    projs.push({
+      alive:true, type:'rock',
+      x:rx, y:-24,
+      vx:(Math.random()-0.5)*0.8,
+      vy:4+Math.random()*2,
+      dmg:50, color:'#5F5E5A',
+      target:enemy, name:'운석',
+      angle:Math.random()*Math.PI*2,
+      isMeteor:true
+    });
+    setTimeout(spawnMeteor, 280+Math.random()*180);
+  }
+  spawnMeteor();
 }
 
 function endBattle(winner){
