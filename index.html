@@ -340,7 +340,7 @@ function buildCards(){
     const skText = d.id==='nodojin'
       ? '스킬 없음<br>💥 죽으면 각성!'
       : (d.skills||[]).map(s=>`· ${s.name}`).join('<br>');
-    const hpText = d.id==='nodojin' ? '50 → 각성300' : d.maxHp;
+    const hpText = d.id==='nodojin' ? '50 → 각성250' : d.maxHp;
     c.innerHTML = `
       <div class="cball" style="background:${d.color}">${d.id==='nodojin'?'도진':'온음'}</div>
       <div class="cname">${d.name}</div>
