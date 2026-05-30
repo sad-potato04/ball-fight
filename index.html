@@ -523,9 +523,9 @@ function tick(dt){
     if(p.x<-80||p.x>AW+80||p.y<-80||p.y>AH+80){ p.alive=false; return; }
 
     if(p.isMeteor){
-      // 운석: 모든 살아있는 공에 닿으면 데미지
+      // 운석: 주인 제외 살아있는 공에만 데미지
       balls.forEach(b=>{
-        if(!b.alive||!p.alive) return;
+        if(!b.alive||!p.alive||b===p.owner) return;
         const dx=b.x-p.x, dy=b.y-p.y;
         if(Math.sqrt(dx*dx+dy*dy)<b.def.r+14){
           dealDmg(b, p.dmg);
@@ -534,7 +534,7 @@ function tick(dt){
         }
       });
     } else {
-      if(!p.target.alive){ p.alive=false; return; }
+      if(!p.target||!p.target.alive){ p.alive=false; return; }
       const dx=p.target.x-p.x, dy=p.target.y-p.y;
       if(Math.sqrt(dx*dx+dy*dy)<p.target.def.r+14){
         dealDmg(p.target, p.dmg);
@@ -689,26 +689,22 @@ function triggerUlt(ball){
 }
 
 function meteorRain(owner){
-  const enemy=balls.find(o=>o!==owner&&o.alive);
-  if(!enemy) return;
   const endTime=performance.now()+3000;
 
   function spawnMeteor(){
     if(performance.now()>endTime||!running) return;
     const rx=20+Math.random()*(AW-40);
-    // 운석은 target 추적 없이 그냥 아래로 떨어짐
-    // tick에서 target 있어야 하니 enemy를 넣되 isMeteor 플래그로 구분
     projs.push({
       alive:true, type:'rock',
       x:rx, y:-24,
       vx:(Math.random()-0.5)*0.8,
-      vy:4+Math.random()*2,
+      vy:5+Math.random()*2,
       dmg:50, color:'#5F5E5A',
-      target:enemy, name:'운석',
+      target:null, name:'운석',
       angle:Math.random()*Math.PI*2,
-      isMeteor:true
+      isMeteor:true, owner
     });
-    setTimeout(spawnMeteor, 280+Math.random()*180);
+    setTimeout(spawnMeteor, 450+Math.random()*100);
   }
   spawnMeteor();
 }
