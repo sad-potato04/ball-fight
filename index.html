@@ -143,7 +143,7 @@ const DEFS = [
     color:'#222222', maxHp:150, r:22, meleeDmg:30, speedMult:1.6,
     skills:[
       {name:'필통던지기', label:'필통', dmg:60, cd:3000, last:0, type:'pencilcase', color:'#111', spd:4.0},
-      {name:'거대필통', label:'거대필통', dmg:100, cd:10000, last:0, type:'bigcase', color:'#111', spd:0},
+      {name:'거대필통', label:'거대필통', dmg:100, cd:9000, last:0, type:'bigcase', color:'#111', spd:0},
     ]
   }
 ];
@@ -413,7 +413,10 @@ function tick(dt){
 function shoot(owner,target,sk){
   addLog(`${owner.def.name} → ${sk.name}!`);
   if(sk.type==='bigcase'){
-    projs.push({alive:true,type:'bigcase',x:AW/2,y:-80,vx:0,vy:3.5,dmg:sk.dmg,color:sk.color,target,name:sk.name,angle:0,scale:AW*0.9,owner});
+    const leftSide=Math.random()<0.5;
+    const halfW=AW*0.5;
+    const cx=leftSide?halfW/2:AW-halfW/2;
+    projs.push({alive:true,type:'bigcase',x:cx,y:-80,vx:0,vy:3.5,dmg:sk.dmg,color:sk.color,target,name:sk.name,angle:0,scale:halfW,owner});
     return;
   }
   const dx=target.x-owner.x,dy=target.y-owner.y,len=Math.sqrt(dx*dx+dy*dy)||1;
