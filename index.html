@@ -426,7 +426,7 @@ function dealDmg(target,dmg){
   spawnDmg(target.x,target.y,dmg);
   updateHUD();
 
-  if(target.def.id==='seoonem'&&target.hp<=30&&!target.ultUsed&&target.alive){
+  if(target.def.id==='seoonem'&&target.hp<=50&&!target.ultUsed&&target.alive){
     target.ultUsed=true; triggerUlt(target); return;
   }
   const jiun=balls.find(b=>b.def.id==='jiun'&&b.alive&&b!==target);
@@ -477,9 +477,11 @@ function meteorRain(owner){
     if(performance.now()>endTime||!running) return;
     const rx=20+Math.random()*(AW-40);
     projs.push({alive:true,type:'rock',x:rx,y:-24,vx:(Math.random()-0.5)*0.8,vy:5+Math.random()*2,dmg:50,color:'#5F5E5A',target:null,name:'운석',angle:Math.random()*Math.PI*2,isMeteor:true,owner});
-    setTimeout(spawnMeteor,450+Math.random()*100);
+    setTimeout(spawnMeteor,220+Math.random()*80);
   }
+  // 처음에 2개 동시 시작
   spawnMeteor();
+  setTimeout(spawnMeteor, 110);
 }
 
 function triggerJiunUlt(jiun,target){
