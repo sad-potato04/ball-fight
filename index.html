@@ -127,23 +127,23 @@ const DEFS = [
     id:'awaken_nodojin', name:'각성나도진', label:'각성\n도진',
     color:'#CC2200', maxHp:250, r:26, meleeDmg:10, speedMult:1,
     skills:[
-      {name:'탁구채!!', label:'탁구채', dmg:50, cd:3000, last:-99999, type:'paddle', color:'#FF6B35', spd:3.2},
-      {name:'LA아닌감?', label:'LA', dmg:80, cd:10000, last:-99999, type:'LA', color:'#CC2200', spd:2.5},
+      {name:'탁구채!!', label:'탁구채', dmg:50, cd:3000, last:0, type:'paddle', color:'#FF6B35', spd:3.2},
+      {name:'LA아닌감?', label:'LA', dmg:80, cd:10000, last:0, type:'LA', color:'#CC2200', spd:2.5},
     ]
   },
   {
     id:'seoonem', name:'서온음', label:'온음',
     color:'#378ADD', maxHp:250, r:23, meleeDmg:15, speedMult:1,
     skills:[
-      {name:'아이언 아니야!!', label:'철광석', dmg:100, cd:7000, last:-99999, type:'rock', color:'#5F5E5A', spd:2.2},
+      {name:'아이언 아니야!!', label:'철광석', dmg:100, cd:7000, last:0, type:'rock', color:'#5F5E5A', spd:2.2},
     ]
   },
   {
     id:'jiun', name:'김지운', label:'지운',
-    color:'#222222', maxHp:200, r:22, meleeDmg:30, speedMult:1.6,
+    color:'#222222', maxHp:150, r:22, meleeDmg:30, speedMult:1.6,
     skills:[
-      {name:'필통던지기', label:'필통', dmg:60, cd:3000, last:-99999, type:'pencilcase', color:'#111', spd:4.0},
-      {name:'거대필통', label:'거대필통', dmg:100, cd:10000, last:-99999, type:'bigcase', color:'#111', spd:0},
+      {name:'필통던지기', label:'필통', dmg:60, cd:3000, last:0, type:'pencilcase', color:'#111', spd:4.0},
+      {name:'거대필통', label:'거대필통', dmg:100, cd:10000, last:0, type:'bigcase', color:'#111', spd:0},
     ]
   }
 ];
@@ -312,6 +312,8 @@ function startBattle(){
   labelEls={};
   const d1=cloneDef(DEFS.find(d=>d.id===selected[0]));
   const d2=cloneDef(DEFS.find(d=>d.id===selected[1]));
+  // 스킬 쿨타임 시작 시점을 현재로 설정 (즉시 발동 방지)
+  [d1,d2].forEach(d=>d.skills.forEach(sk=>sk.last=performance.now()));
   p1=makeBall(d1,AW*0.18,AH*0.5,'#e00');
   p2=makeBall(d2,AW*0.82,AH*0.5,'#00c');
   balls=[p1,p2]; projs=[]; slashEffects=[]; logs=[];
